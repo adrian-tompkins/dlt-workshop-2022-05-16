@@ -1,18 +1,43 @@
 # Databricks notebook source
 import dlt
 import pyspark.sql.functions as F
-staged_data_root = {{STAGED_DATA_ROOT}}
+import json
+
+staged_data_root = spark.conf.get("dltPipeline.stagedDataRoot")
 
 # COMMAND ----------
 
 def get_tables_to_ingest():
+    # Here we are using pipeline parameters to set the configuration of tables to ingest;
     # this could be pulled directly from the SQL metastore by
-    # connecting to it via JBDC, or it could be passed in
-    # as parameters when the pipeline is created.
+    # connecting to it via JBDC
+    #
     # In production, it would be best to scope this pipeline
     # to a collection of tables, rather than all the tables available,
     # eg don't ingest 100 tables at once here; limit it to a logical grouping
-    return [['name_location_cdc', ['id']]]
+    
+    # the below expects configurtion to be of the format:
+    # dltPipeline.table.[n].(table|identity_cols)
+    # eg:
+    #
+    # dltPipeline.table.0.name my_table_1
+    # dltPipeline.table.0.identity_cols id
+    # dltPipeline.table.1.name my_table_2
+    # dltPipeline.table.1.identity_cols name,revision
+    
+    # this is pretty fragile code - doesn't handle errors/bad config gracefully
+    max_config_items = 1000 # failsafe for max config
+    table_config = []
+    for i in range(0, max_config_items):
+        try:
+            name = spark.conf.get(f'dltPipeline.table.{i}.name')
+            identity_cols =  spark.conf.get(f'dltPipeline.table.{i}.identityCols').split(',')
+        except Exception:
+            break
+            
+        table_config.append({"name": name, "identity_cols": identity_cols})
+        
+    return table_config
 
 # COMMAND ----------
 
@@ -37,6 +62,11 @@ def generate_tables(table, keys):
         '__$command_id'
     ]
     
+    cdc_order_columns = ['__$start_lsn', '__$command_id', '__$seqval', '__$operation']
+
+    def add_global_order(df, colname):
+        return df.withColumn(colname, F.concat(*cdc_order_columns).cast('binary'))
+    
     cdc_columns_pretty = [c.replace('__$', '__') for c in cdc_columns]
     
     # auto loader currently does not support schema inference from parquet
@@ -45,25 +75,25 @@ def generate_tables(table, keys):
     # it will get slower as the size of the staging location increases
     # instead, consider infering the schema on a smaller subset of the staging data,
     # or from managing it within the ingestion metadata database
-    schema = spark.read.format('parquet').load(f'{staging_path_prefix}/{table}/*').schema
+    schema = spark.read.format('parquet').load(f'{staged_data_root}/{table}/*.parquet').schema
     
     @dlt.table(
       name=bronze_name,
       comment=f'raw bronze cdc data for {table}'
     )
     def create_bronze_table():
-        return spark.readStream.format('cloudfiles').schema(schema).option('cloudfiles.format', 'parquet').load(f'{staging_path_prefix}/{table}/*')
+        return spark.readStream.format('cloudfiles').schema(schema).option('cloudfiles.format', 'parquet').load(f'{staged_data_root}/{table}/*.parquet')
     
     @dlt.view(
         name=pretty_name,
         comment=f'cleaner formatted version of raw cdc table {table}'
     )
     def create_cdc_pretty_view():
-        return (dlt
-             .read_stream(bronze_name)
+        df = add_global_order(dlt.read_stream(bronze_name), '__global_order')
+        return (df
              .select(["*"] + [F.col(cdc_col).alias(cdc_col_pretty) for cdc_col, cdc_col_pretty in zip(cdc_columns, cdc_columns_pretty)])
              .drop(*cdc_columns)
-             .filter(F.col('__operation') != 3)
+             .filter(F.col('__operation') != 3) # ignore values prior to insert - not needed
              .withColumn("__operation", F.when(F.col('__operation') == 1, 'DELETE')
                                          .when(F.col('__operation') == 2, 'INSERT')
                                          .when(F.col('__operation') == 4, 'UPDATE')
@@ -87,7 +117,7 @@ def generate_tables(table, keys):
         target = silver_scd_1_name,
         source = pretty_name,
         keys = keys,
-        sequence_by = F.col("__seqval"), #TODO: confirm with MSFT that seqval is the only column needed for ordering
+        sequence_by = F.col("__global_order"),
         apply_as_deletes = F.col('__operation') == 'DELETE',
         except_column_list = cdc_columns_pretty
     )
@@ -109,6 +139,6 @@ def generate_tables(table, keys):
 
 # COMMAND ----------
 
-for table, keys in get_tables_to_ingest():
+for table_config in get_tables_to_ingest():
     # spin up our ingestions in parallel
-    generate_tables(table, keys)
+    generate_tables(table_config['name'], table_config['identity_cols'])
