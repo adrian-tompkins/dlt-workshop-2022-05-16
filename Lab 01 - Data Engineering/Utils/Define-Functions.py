@@ -3,12 +3,12 @@
 
 # COMMAND ----------
 
-spark.sql(f"CREATE DATABASE IF NOT EXISTS {database_name}_aux")
+spark.sql(f"CREATE DATABASE IF NOT EXISTS {DATABASE_NAME}_aux")
 
-spark.read.json(f"{base_table_path}sales_202201.json").createOrReplaceTempView('jan_sales_view')
+spark.read.json(f"{APJUICE_DATA_ASSET_PATH}sales_202201.json").createOrReplaceTempView('jan_sales_view')
 
 spark.sql(f"""
-CREATE TABLE IF NOT EXISTS {database_name}_aux.jan_sales
+CREATE TABLE IF NOT EXISTS {DATABASE_NAME}_aux.jan_sales
 AS 
 SELECT *, from_unixtime(ts, "yyyy-MM-dd") as ts_date 
 FROM jan_sales_view
@@ -21,7 +21,7 @@ import time
 
 def get_incremental_data(ingest_path, location, date):
     df = spark.sql(f"""
-  select CustomerID, Location, OrderSource, PaymentMethod, STATE, SaleID, SaleItems, ts, unix_timestamp() as exported_ts from {database_name}_aux.jan_sales
+  select CustomerID, Location, OrderSource, PaymentMethod, STATE, SaleID, SaleItems, ts, unix_timestamp() as exported_ts from {DATABASE_NAME}_aux.jan_sales
 where location = '{location}' and ts_date = '{date}'
   """)
     df \
@@ -34,7 +34,7 @@ where location = '{location}' and ts_date = '{date}'
   
 def get_fixed_records_data(ingest_path, location, date):
   df = spark.sql(f"""
-  select CustomerID, Location, OrderSource, PaymentMethod, 'CANCELED' as STATE, SaleID, SaleItems, from_unixtime(ts) as ts, unix_timestamp() as exported_ts from {database_name}_aux.jan_sales
+  select CustomerID, Location, OrderSource, PaymentMethod, 'CANCELED' as STATE, SaleID, SaleItems, from_unixtime(ts) as ts, unix_timestamp() as exported_ts from {DATABASE_NAME}_aux.jan_sales
 where location = '{location}' and ts_date = '{date}'
 and state = 'PENDING'
   """)

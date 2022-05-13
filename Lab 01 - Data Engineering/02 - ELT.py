@@ -46,9 +46,8 @@
 
 setup_responses = dbutils.notebook.run("./Utils/Setup-Batch", 0).split()
 
-local_data_path = setup_responses[0]
-dbfs_data_path = setup_responses[1]
-database_name = setup_responses[2]
+dbfs_data_path = setup_responses[0]
+database_name = setup_responses[1]
 
 bronze_table_path = f"{dbfs_data_path}tables/bronze"
 silver_table_path = f"{dbfs_data_path}tables/silver"
@@ -61,7 +60,6 @@ dbutils.fs.rm(bronze_table_path, recurse=True)
 dbutils.fs.rm(silver_table_path, recurse=True)
 dbutils.fs.rm(gold_table_path, recurse=True)
 
-print("Local data path is {}".format(local_data_path))
 print("DBFS path is {}".format(dbfs_data_path))
 print("Database name is {}".format(database_name))
 
@@ -232,8 +230,8 @@ silver_df.write \
 
 import pyspark.sql.functions as F
 
-checkpoint_path = f'{local_data_path}/_checkpoints'
-schema_path = f'{local_data_path}/_schema'
+checkpoint_path = f'{dbfs_data_path}/_checkpoints'
+schema_path = f'{dbfs_data_path}/_schema'
 write_path = f'{bronze_table_path}/bronze_sales'
 
 spark.sql("drop table if exists bronze_sales")

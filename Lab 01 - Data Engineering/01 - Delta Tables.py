@@ -49,9 +49,8 @@
 
 setup_responses = dbutils.notebook.run("./Utils/Setup-Batch", 0).split()
 
-local_data_path = setup_responses[0]
-dbfs_data_path = setup_responses[1]
-database_name = setup_responses[2]
+dbfs_data_path = setup_responses[0]
+database_name = setup_responses[1]
 
 print("Local data path is {}".format(local_data_path))
 print("DBFS path is {}".format(dbfs_data_path))

@@ -31,7 +31,7 @@ COMMENT "Bronze sales table with all transactions"
 AS 
 SELECT * 
 FROM
-cloud_files( '/FileStore/${mypipeline.data_path}/deltademoasset/dlt_ingest/' , "json") 
+cloud_files('${mypipeline.data_path}/dlt_ingest/' , "json") 
 
 -- COMMAND ----------
 
@@ -42,7 +42,7 @@ COMMENT "Users dimension - not included in database"
 AS 
 SELECT store_id || "-" || cast(id as string) as unique_id, id, store_id, name, email 
 FROM 
-json.`/FileStore/${mypipeline.data_path}/deltademoasset/users.json`;
+json.`${mypipeline.data_path}/users.json`;
 
 
 -- COMMAND ----------
@@ -53,7 +53,7 @@ COMMENT "Store locations dimension - not included in database"
 AS 
 SELECT *, case when id in ('SYD01', 'MEL01', 'BNE02', 'MEL02', 'PER01', 'CBR01') then 'AUS' when id in ('AKL01', 'AKL02', 'WLG01') then 'NZL' end as country_code 
 FROM  
-json.`/FileStore/${mypipeline.data_path}/deltademoasset/stores.json`;
+json.`${mypipeline.data_path}/stores.json`;
 
 -- COMMAND ----------
 
@@ -61,7 +61,7 @@ CREATE LIVE TABLE dim_products_dlt
 TBLPROPERTIES ("quality" = "lookup")
 COMMENT "Products dimension "
 AS 
-SELECT * FROM  json.`/FileStore/${mypipeline.data_path}/deltademoasset/products.json`;
+SELECT * FROM  json.`${mypipeline.data_path}/products.json`;
 
 -- COMMAND ----------
 

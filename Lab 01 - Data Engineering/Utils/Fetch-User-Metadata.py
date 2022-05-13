@@ -17,12 +17,15 @@
 
 # COMMAND ----------
 
-database_name = spark.conf.get("com.databricks.training.spark.dbName")
-username = spark.conf.get("com.databricks.training.spark.userName").replace('.', '_')
+DATABASE_NAME = spark.conf.get("com.databricks.training.spark.dbName")
+USERNAME = spark.conf.get("com.databricks.training.spark.userName").replace('.', '_')
+PROJECT_ID = f'dlt_workshop_20220517_{USERNAME}'
+ROOT_PATH = f'dbfs:/tmp/{PROJECT_ID}'
 
-displayHTML("""Username is <b style="color:green">{}</b>""".format(username))
+APJUICE_DATA_ASSET_PATH = f"dbfs:/tmp/{PROJECT_ID}/apjuice/deltademoasset/"
+
+displayHTML("""Username is <b style="color:green">{}</b>""".format(USERNAME))
 
 # COMMAND ----------
 
-base_table_path = f"dbfs:/FileStore/{username}/deltademoasset/"
-local_data_path = f"/dbfs/FileStore/{username}/deltademoasset/"
+

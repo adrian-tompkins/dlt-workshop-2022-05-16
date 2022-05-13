@@ -27,10 +27,9 @@
 
 # COMMAND ----------
 
-setup_responses = dbutils.notebook.run("./Utils/Setup-Datasets", 0).split()
+setup_responses = dbutils.notebook.run("./Utils/Setup-Batch", 0).split()
 
-local_data_path = setup_responses[0]
-dbfs_data_path = setup_responses[1]
+dbfs_data_path = setup_responses[0]
 
 dlt_ingest_path = f"{dbfs_data_path}/dlt_ingest/"
 
@@ -77,14 +76,14 @@ if refresh_dlt_datasets:
 
 # COMMAND ----------
 
-storage_path = f'/tmp/{username}/dlt_pipeline'
-dlt_database_name = f'{database_name}_dlt'
+storage_path = f'{ROOT_PATH}/apjuice_dlt_pipeline'
+dlt_database_name = f'apjuice_{DATABASE_NAME}'
 
 
 displayHTML("""<h2>Use these values to create your Delta Live Pipeline</h2>""")
 displayHTML("""<b>Configuration:</b>""")
 displayHTML("""Key: <b style="color:green">mypipeline.data_path</b>""")
-displayHTML("""Value: <b style="color:green">{}</b>""".format(username))
+displayHTML("""Value: <b style="color:green">{}</b>""".format(dbfs_data_path))
 displayHTML("""<b>Target:</b>""")
 displayHTML("""<b style="color:green">{}</b>""".format(dlt_database_name))
 displayHTML("""<b>Storage Location: </b>""")
@@ -103,6 +102,28 @@ displayHTML("""<b style="color:green">{}</b>""".format(storage_path))
 
 # MAGIC %md
 # MAGIC 
+# MAGIC ## Explore data created by the pipeline
+# MAGIC 
+# MAGIC Once the pipeline has finished, explore the data
+
+# COMMAND ----------
+
+spark.sql(f"USE {dlt_database_name};")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from silver_sales_dlt
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from country_sales_dlt
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC 
 # MAGIC ## Incremental Updates
 
 # COMMAND ----------
@@ -115,7 +136,7 @@ displayHTML("""<b style="color:green">{}</b>""".format(storage_path))
 
 # COMMAND ----------
 
-get_incremental_data(dlt_ingest_path, 'SYD01','2022-01-01') 
+get_incremental_data(dlt_ingest_path, 'SYD01','2022-01-01')
 
 # COMMAND ----------
 

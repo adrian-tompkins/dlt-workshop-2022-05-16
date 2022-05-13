@@ -24,10 +24,7 @@
 
 # COMMAND ----------
 
-PROJECT_ID = f'cdc_dlt_workshop_20220517_{username}'
-
-ROOT_PATH = f'dbfs:/tmp/{PROJECT_ID}'
-DLT_TARGET_DATABASE = f'cdc_{database_name}'
+DLT_TARGET_DATABASE = f'cdc_{DATABASE_NAME}'
 DLT_JOB_NAME = PROJECT_ID
 
 print(ROOT_PATH)
@@ -40,9 +37,7 @@ CDC_ORDER_COLS = ['__$start_lsn', '__$command_id', '__$seqval', '__$operation']
 def cdc_order(df, colname):
     return df.withColumn(colname, F.concat(*CDC_ORDER_COLS).cast('binary')).orderBy(colname)
 
-def clean_up():
-    spark.sql(f"drop database if exists {DLT_TARGET_DATABASE}")
-    dbutils.fs.rm(ROOT_PATH, True)
+
 
 # COMMAND ----------
 
@@ -119,13 +114,10 @@ display(dbutils.fs.ls(CDC_ORDERED_STAGED_LOCATION) + dbutils.fs.ls(CDC_UNORDERED
 
 # COMMAND ----------
 
+import json
 from pathlib import Path
 path = Path(dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get())
 notebook_target = str(path.parent.absolute().joinpath('06 - Delta Live Tables (Python - CDC)'))
-
-# COMMAND ----------
-
-import json
 
 setup_template = {
     "clusters": [
@@ -222,7 +214,3 @@ dbutils.fs.cp(f'{CDC_PRESTAGE_LOCATION}/unload_1.parquet', CDC_UNORDERED_STAGED_
 
 dbutils.fs.cp(f'{CDC_PRESTAGE_LOCATION}/unload_3.parquet', CDC_ORDERED_STAGED_LOCATION)
 dbutils.fs.cp(f'{CDC_PRESTAGE_LOCATION}/unload_0.parquet', CDC_UNORDERED_STAGED_LOCATION)
-
-# COMMAND ----------
-
-clean_up()
