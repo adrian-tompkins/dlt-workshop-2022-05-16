@@ -228,13 +228,6 @@ spark.sql(f"use {DLT_TARGET_DATABASE}")
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Step 5 - Simulate More Unloads
-# MAGIC Each of the below cells will simulate the next unload.
-# MAGIC Between running these cells, re-run the above exploration cells to show that the data is being processed by the DLT pipeline.
-
-# COMMAND ----------
-
 # MAGIC %sql
 # MAGIC select * from silver_scd_1_unordered_example EXCEPT select * from silver_scd_1_ordered_example
 # MAGIC union
@@ -246,6 +239,13 @@ spark.sql(f"use {DLT_TARGET_DATABASE}")
 # MAGIC select * from silver_scd_2_unordered_example EXCEPT select * from silver_scd_2_ordered_example
 # MAGIC union
 # MAGIC select * from silver_scd_2_ordered_example EXCEPT select * from silver_scd_2_unordered_example
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 5 - Simulate More Unloads
+# MAGIC Each of the below cells will simulate the next unload.
+# MAGIC Between running these cells, re-run the above exploration cells to show that the data is being processed by the DLT pipeline.
 
 # COMMAND ----------
 
